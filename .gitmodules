@@ -1,0 +1,3 @@
+[submodule "cloudlab-lib"]
+	path = cloudlab-lib
+	url = https://github.com/varungohil/cloudlab-lib.git
