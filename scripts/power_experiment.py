@@ -24,12 +24,12 @@ def get_cpu_topology(node, cl):
     
     return socket_cores
 
-def run_busy_loop(node, core, duration, cl):
-    """Run busy_loop.py on a specific core."""
-
+def run_busy_loop(node, cores, duration, cl):
+    """Run busy_loop.py on specified cores."""
+    core_list = ",".join(map(str, cores))
     cmd = f"""
     cd /users/varuncg/power-exp/scripts;
-    taskset -c {core} python3 busy_loop.py -d {duration}
+    python3 busy_loop.py -d {duration} -c {core_list}
     """
     return cl.run_on_node(node, cmd)
 
@@ -71,8 +71,8 @@ def main():
         
         # Configure power settings
         cl.turn_turboboost("all", "off", "acpi", exit_on_err=True)
-        cl.run("all", "sudo ethtool -K enp94s0f0 ntuple on")
-        cl.run("all", "sudo apt-get install chrony -y")
+        # cl.run("all", "sudo ethtool -K enp94s0f0 ntuple on")
+        # cl.run("all", "sudo apt-get install chrony -y")
 
     if args.run:
     
@@ -87,7 +87,7 @@ def main():
         print("Setting power governor and frequencies...")
         cl.set_power_governor(args.node, "userspace")
         for socket in socket_cores:
-            cl.set_frequency(args.node, ",".join(map(str, socket_cores[socket])), "0.8GHz")
+            cl.set_frequency(args.node, ",".join(map(str, socket_cores[socket])), "1.2GHz")
         
         # Calculate number of cores to use based on utilization
         socket1_cores = socket_cores[1]  # Get cores from socket 1
@@ -99,21 +99,20 @@ def main():
         threads = []
         
         # Create energy logger thread
-        filename = "energy/energy.csv"
+        filename = "energy.csv"
         energy_thread = threading.Thread(
             target=run_energy_logger,
             args=(args.node, socket_cores[0][0], args.duration, cl, filename)
         )
         threads.append(energy_thread)
         
-        # Create busy loop threads
-        print(f"Creating busy loop threads for {num_cores_to_use} cores...")
-        for core in cores_to_use:
-            thread = threading.Thread(
-                target=run_busy_loop,
-                args=(args.node, core, args.duration, cl)
-            )
-            threads.append(thread)
+        # Create busy loop thread (now runs all cores in a single process)
+        print(f"Creating busy loop for {num_cores_to_use} cores...")
+        busy_thread = threading.Thread(
+            target=run_busy_loop,
+            args=(args.node, cores_to_use, args.duration, cl)
+        )
+        threads.append(busy_thread)
         
         # Start all threads together
         print("Starting all threads...")
