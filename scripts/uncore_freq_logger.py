@@ -3,7 +3,7 @@ import time
 import argparse
 import subprocess
 
-def get_uncore_freq(core):
+def get_uncore_freq():
     """Read current uncore frequency"""
     command = f"sudo rdmsr 0x621"
     result = subprocess.check_output(command, shell=True)
