@@ -7,7 +7,9 @@ def get_uncore_freq(core):
     """Read current uncore frequency"""
     command = f"sudo rdmsr 0x621"
     result = subprocess.check_output(command, shell=True)
-    return result.decode().strip()
+    hex_value = result.decode().strip()
+    # Convert hex to decimal and multiply by 100
+    return int(hex_value, 16) * 100
 
 
 
